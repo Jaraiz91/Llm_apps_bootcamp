@@ -78,6 +78,18 @@ def check_elements(**kwargs):
         check = True
     return check, need_elems
 
+def evaluate(llm,real_qa, response):
+    evaluator = QAEvalChain.from_llm(llm=llm)
+    eval = evaluator.evaluate(
+            real_qa,
+            response,
+            question_key='question',
+            prediction_key='answer',
+            answer_key='answer'
+        )
+    return eval
+    
+
 def place_warnings(elems):
     for e in elems:
         st.warning(f'{e} must be provided', icon="⚠️")
@@ -132,18 +144,11 @@ if button:
         openai_retrieval_chain = create_retrieval_chain(OpenAi_retriever, qa_chain_openai) 
         llama_retrieval_chain = create_retrieval_chain(Llama_retriever, qa_chain_llama)
 
-        llama_response = llama_retrieval_chain.invoke({'input': question})['answer']
+        llama_response = [llama_retrieval_chain.invoke({'input': question})]
         openai_response = [openai_retrieval_chain.invoke({'input': question})]
-        qa_pairs = {'question': question, 'answer': answer}
-        openai_evaluator = QAEvalChain.from_llm(openai_llm)
-        llama_evaluator = QAEvalChain.from_llm(llama_llm)
-        openai_eval = openai_evaluator.evaluate(
-            real_qa,
-            openai_response,
-            question_key='question',
-            prediction_key='answer',
-            answer_key='answer'
-        )
+        openai_eval = evaluate(llm=openai_llm, real_qa=real_qa, response=openai_response)
+        llama_eval = evaluate(llm=llama_llm, real_qa=real_qa, response=llama_response)
+        
     st.write(openai_eval)
     st.divider()
     st.write('All done!', openai_response)
