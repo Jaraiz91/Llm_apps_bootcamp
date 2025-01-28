@@ -8,18 +8,21 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
+import random
 
 
 _ = load_dotenv(find_dotenv())
 openai_api_key = os.environ['OPENAI_API_KEY']
 client_id = os.environ['GOOGLE_CLIENT_ID']
 client_secret = os.environ['GOOGLE_CLIENT_SECRET']
+print(os.environ['LANGCHAIN_PROJECT'])
 
 
 # Configurar los alcances y la autenticación
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
 def authenticate_google_calendar():
+
     creds = None
     if os.path.exists('token.pickle'):
         with open('token.pickle', 'rb') as token:
@@ -47,7 +50,7 @@ def authenticate_google_calendar():
 
 print('check!')
 
-@tool
+
 def get_calendar_events():
     creds = authenticate_google_calendar()
     service = build('calendar', 'v3', credentials=creds)
@@ -61,7 +64,16 @@ def get_calendar_events():
     for event in events:
         print(event['summary'])
 
-@tool
+
+def get_three_random(lista):
+    # Verificar si la lista tiene más de 3 elementos
+    if len(lista) > 3:
+        # Devolver 3 elementos aleatorios usando random.sample
+        return random.sample(lista, 3)
+    else:
+        # Si la lista tiene 3 o menos elementos, devolver la lista original
+        return lista
+    
 def get_available_slots():
     creds = authenticate_google_calendar()
     service = build('calendar', 'v3', credentials=creds)
@@ -100,11 +112,12 @@ def get_available_slots():
         if not any(start <= current_time < end for start, end in busy_slots):
             available_slots.append((current_time, next_time))
         current_time = next_time
+    print('eventos escaneados')
+    proposed_slots = get_three_random(available_slots)
+    return proposed_slots
 
-    return available_slots
 
 
-@tool
 def crear_evento(start_time, end_time, summary="Reunión bloqueada"):
     """
     Crea un evento en Google Calendar
@@ -132,7 +145,7 @@ def crear_evento(start_time, end_time, summary="Reunión bloqueada"):
         print(f'Error al crear el evento: {e}')
         return None
 
-@tool
+
 def borrar_evento(event_id):
     """
     Borra un evento de Google Calendar usando su ID
